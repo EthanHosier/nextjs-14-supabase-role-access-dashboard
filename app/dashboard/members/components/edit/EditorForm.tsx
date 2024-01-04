@@ -3,26 +3,42 @@ import BasicForm from "./BasicForm";
 import AccountForm from "./AccountForm";
 import AdvanceForm from "./AdvanceForm";
 import { cn } from "@/lib/utils";
+import { iPermission } from "@/lib/types";
 
-export default function EditForm() {
-	return (
-		<Tabs defaultValue="basic" className="w-full space-y-5">
-			<TabsList className={cn("grid w-full ", "grid-cols-3")}>
-				<TabsTrigger value="basic">Basic</TabsTrigger>
+export default function EditForm({
+  isAdmin,
+  permission,
+}: {
+  isAdmin: boolean;
+  permission: iPermission;
+}) {
+  return (
+    <Tabs defaultValue="basic" className="w-full space-y-5">
+      <TabsList
+        className={cn("grid w-full ", isAdmin ? "grid-cols-3" : "grid-cols-1")}
+      >
+        <TabsTrigger value="basic">Basic</TabsTrigger>
+        {isAdmin && (
+          <>
+            <TabsTrigger value="account">Acccount</TabsTrigger>
+            <TabsTrigger value="advance">Advance</TabsTrigger>
+          </>
+        )}
+      </TabsList>
+      <TabsContent value="basic">
+        <BasicForm permission={permission} />
+      </TabsContent>
 
-				<TabsTrigger value="account">Acccount</TabsTrigger>
-				<TabsTrigger value="advance">Advance</TabsTrigger>
-			</TabsList>
-			<TabsContent value="basic">
-				<BasicForm />
-			</TabsContent>
-
-			<TabsContent value="account">
-				<AccountForm />
-			</TabsContent>
-			<TabsContent value="advance">
-				<AdvanceForm />
-			</TabsContent>
-		</Tabs>
-	);
+      {isAdmin && (
+        <>
+          <TabsContent value="account">
+            <AccountForm permission={permission} />
+          </TabsContent>
+          <TabsContent value="advance">
+            <AdvanceForm permission={permission} />
+          </TabsContent>
+        </>
+      )}
+    </Tabs>
+  );
 }

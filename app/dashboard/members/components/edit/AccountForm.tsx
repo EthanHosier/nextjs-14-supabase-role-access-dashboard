@@ -6,121 +6,139 @@ import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { cn } from "@/lib/utils";
+import { iPermission } from "@/lib/types";
+import { useTransition } from "react";
+import { updateMemberAccountById } from "../../actions";
 
 const FormSchema = z
-	.object({
-		email: z.string().email(),
-		password: z.string().optional(),
-		confirm: z.string().optional(),
-	})
-	.refine((data) => data.confirm === data.password, {
-		message: "Passowrd doesn't match",
-		path: ["confirm"],
-	});
+  .object({
+    email: z.string().email(),
+    password: z.string().optional(),
+    confirm: z.string().optional(),
+  })
+  .refine((data) => data.confirm === data.password, {
+    message: "Passowrd doesn't match",
+    path: ["confirm"],
+  });
 
-export default function AccountForm() {
-	const form = useForm<z.infer<typeof FormSchema>>({
-		resolver: zodResolver(FormSchema),
-		defaultValues: {
-			email: "",
-			password: "",
-			confirm: "",
-		},
-	});
+export default function AccountForm({
+  permission,
+}: {
+  permission: iPermission;
+}) {
+  const [isPending, startTransition] = useTransition();
 
-	function onSubmit(data: z.infer<typeof FormSchema>) {
-		toast({
-			title: "You submitted the following values:",
-			description: (
-				<pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-					<code className="text-white">
-						{JSON.stringify(data, null, 2)}
-					</code>
-				</pre>
-			),
-		});
-	}
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      email: permission.member.email,
+      password: "",
+      confirm: "",
+    },
+  });
 
-	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onSubmit)}
-				className="w-full space-y-6"
-			>
-				<FormField
-					control={form.control}
-					name="email"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Email</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="email@gmail.com"
-									type="email"
-									{...field}
-									onChange={field.onChange}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				<FormField
-					control={form.control}
-					name="password"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Password</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="******"
-									type="password"
-									onChange={field.onChange}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				<FormField
-					control={form.control}
-					name="confirm"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Confirm Password</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="******"
-									type="password"
-									onChange={field.onChange}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				<Button
-					type="submit"
-					className="flex gap-2 items-center w-full"
-					variant="outline"
-				>
-					Update
-					<AiOutlineLoading3Quarters
-						className={cn(" animate-spin", "hidden")}
-					/>
-				</Button>
-			</form>
-		</Form>
-	);
+  function onSubmit(data: z.infer<typeof FormSchema>) {
+    startTransition(async () => {
+      const { error } = await updateMemberAccountById(
+        permission.member_id,
+        data
+      );
+
+      if (error?.message) {
+        toast({
+          title: "Failed to update",
+          variant: "destructive",
+          description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+              <code className="text-white">{error?.message}</code>
+            </pre>
+          ),
+        });
+      } else {
+        toast({
+          title: "Successfully updated",
+        });
+      }
+    });
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-6">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="email@gmail.com"
+                  type="email"
+                  {...field}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="******"
+                  type="password"
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="confirm"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm Password</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="******"
+                  type="password"
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button
+          type="submit"
+          className="flex gap-2 items-center w-full"
+          variant="outline"
+        >
+          Update
+          <AiOutlineLoading3Quarters
+            className={cn(" animate-spin", { hidden: !isPending })}
+          />
+        </Button>
+      </form>
+    </Form>
+  );
 }
